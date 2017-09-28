@@ -1,3 +1,7 @@
+This is a fork of https://github.com/khcnz/Espressif2Arduino, changed so that after flashing it is in AP mode rather than trying to connect to a WiFi network.
+
+This is used as the binaries at: https://github.com/mirko/SonOTA/tree/master/static
+
 # Espressif2Arduino
 Used for bootstrapping the replacement of the default Espressif ESP8266 bootloader, replacing it with the Arduino bootloader and a custom rom.  
 

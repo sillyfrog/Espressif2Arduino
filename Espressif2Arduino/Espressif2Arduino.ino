@@ -5,6 +5,8 @@ extern "C" uint8_t system_upgrade_userbin_check();
 extern "C" void system_upgrade_flag_set(uint8 flag);
 extern "C" void system_upgrade_reboot (void);
 
+#define AP_SSID "FinalStage"
+
 #define MAGIC_V1 0xE9
 #define MAGIC_V2 0xEA
 #define UPGRADE_FLAG_START 0x01
@@ -30,16 +32,15 @@ enum FlashMode
 #define STATUS_GPIO 13  //gpio to toggle as status indicator
 #define RETRY 3         //number of times to retry
 
-#define URL_QIO_ROM_2 "http://cputoasters.com/ameyer/sonoff/e2a-1024-2.bin"
-#define URL_QIO_ROM_3 "http://sonoff.maddox.co.uk/tasmota/sonoff-minimal.bin"
+#define URL_QIO_ROM_2 "http://192.168.4.2:8080/ota/image_user2-0x81000.bin"
+#define URL_QIO_ROM_3 "http://192.168.4.2:8080/ota/image_arduino.bin"
 
-#define URL_DIO_ROM_2 "http://cputoasters.com/ameyer/sonoff/e2a-1024-2.bin"
-#define URL_DIO_ROM_3 "http://sonoff.maddox.co.uk/tasmota/sonoff-minimal.bin"
+#define URL_DIO_ROM_2 "http://192.168.4.2:8080/ota/image_user2-0x81000.bin"
+#define URL_DIO_ROM_3 "http://192.168.4.2:8080/ota/image_arduino.bin"
 
 //Uncomment to provide fixed credentials - otherwise will try to use credentials saved by sonoff device
 //#define WIFI_SSID "TEST"
 //#define WIFI_PASSWORD "PASSWORD"
-
 
 
 void setup()
@@ -105,33 +106,38 @@ uint8_t determineUpgradeMode()
 
 void connectToWiFiBlocking()
 {
-  char ssid[32] = {0};
-  char pass[64] = {0};
+  //char ssid[32] = {0};
+  //char pass[64] = {0};
   
-  Serial.print("Attemping to read Sonoff Wifi credentials... ");
-  ESP.flashRead(0x79000, (uint32_t *) &ssid[0], sizeof(ssid));
-  ESP.flashRead(0x79020, (uint32_t *) &pass[0], sizeof(pass));
-  Serial.print("Done\n");
-  Serial.printf("\tSSID: %s\n", ssid);
-  Serial.printf("\tPassword: %s\n", pass);
+  //Serial.print("Attemping to read Sonoff Wifi credentials... ");
+  //ESP.flashRead(0x79000, (uint32_t *) &ssid[0], sizeof(ssid));
+  //ESP.flashRead(0x79020, (uint32_t *) &pass[0], sizeof(pass));
+  //Serial.print("Done\n");
+  //Serial.printf("\tSSID: %s\n", ssid);
+  //Serial.printf("\tPassword: %s\n", pass);
 
   
-  Serial.printf("Connecting to Wifi...",ssid,pass);
+  Serial.printf("Configuring Wifi...", AP_SSID);
   WiFi.persistent(false);
   WiFi.mode(WIFI_OFF);
-  WiFi.mode(WIFI_STA);
+  WiFi.mode(WIFI_AP_STA);
+  
+  WiFi.softAP(AP_SSID);
 
-#ifdef WIFI_SSID
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-#endif
-#ifndef WIFI_SSID
-  WiFi.begin(ssid,pass);
-#endif
+  WiFiClient client;
+  bool connected = false;
 
-  while (WiFi.status() != WL_CONNECTED)
+  // Wait for the PC to connect to the WiFi and start the web server
+  while (! connected)
   {
+    delay(500);
+    Serial.println("Connecting...");
     blink();
-    delay(DELAY*2);
+    client.connect("192.168.4.2", 8080);
+    if (client.connected()) {
+      Serial.println("Connected");
+      connected = true;
+    }
   }
   Serial.print("Done\n");
   IPAddress ip = WiFi.localIP();
@@ -185,7 +191,9 @@ void flashRom2(FlashMode_t mode)
 }
 
 //Assumes bootloader must be in first SECTOR_SIZE bytes.
-bool downloadRomToFlash(byte rom, byte bootloader, byte magic, uint32_t start_address, uint32_t end_address, uint16_t erase_sectior_start, uint16_t erase_sector_end, const char * url, uint8_t retry_limit)
+bool downloadRomToFlash(byte rom, byte bootloader, byte magic, 
+  uint32_t start_address, uint32_t end_address, uint16_t erase_sectior_start, 
+  uint16_t erase_sector_end, const char * url, uint8_t retry_limit)
 {
   uint8_t retry_counter = 0;
   while(retry_counter < retry_limit)
@@ -320,7 +328,7 @@ void blink()
 
 void loop()
 {
-  //delay(100);
+  delay(100);
 }
 
 
