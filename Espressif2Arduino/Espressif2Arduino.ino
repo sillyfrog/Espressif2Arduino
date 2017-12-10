@@ -32,11 +32,8 @@ enum FlashMode
 #define STATUS_GPIO 13  //gpio to toggle as status indicator
 #define RETRY 3         //number of times to retry
 
-#define URL_QIO_ROM_2 "http://192.168.4.2:8080/ota/image_user2-0x81000.bin"
-#define URL_QIO_ROM_3 "http://192.168.4.2:8080/ota/image_arduino.bin"
-
-#define URL_DIO_ROM_2 "http://192.168.4.2:8080/ota/image_user2-0x81000.bin"
-#define URL_DIO_ROM_3 "http://192.168.4.2:8080/ota/image_arduino.bin"
+#define URL_ROM_2 "http://192.168.4.2:8080/ota/image_user2-0x81000.bin"
+#define URL_ROM_3 "http://192.168.4.2:8080/ota/image_arduino.bin"
 
 //Uncomment to provide fixed credentials - otherwise will try to use credentials saved by sonoff device
 //#define WIFI_SSID "TEST"
@@ -61,28 +58,27 @@ void setup()
   digitalWrite(STATUS_GPIO, HIGH);
   Serial.println("Done");
 
-  uint8_t upgrade = determineUpgradeMode();
+  uint8_t upgrade = determineUpgradeRom();
   if(upgrade == MODE_FLASH_ROM1 || MODE_FLASH_ROM2)
   {
       connectToWiFiBlocking();
       digitalWrite(STATUS_GPIO, LOW);
   }
   
-  Serial.printf("Flash Mode: ");
-  FlashMode_t mode = ESP.getFlashChipMode();
-  Serial.printf("%d\n", mode);
+  Serial.print("Flash Mode: ");
+  FlashMode_t flashmode = ESP.getFlashChipMode();
+  Serial.println(flashmode);
   
   if (upgrade == MODE_FLASH_ROM1)
-    flashRom1(mode);
+    flashRom1();
   else if(upgrade == MODE_FLASH_ROM2)
-    flashRom2(mode);
+    flashRom2();
   else
-    Serial.println("Flash Mode not recognized");
+    Serial.println("ROM or Flash Mode not recognized");
 }
 
 
-
-uint8_t determineUpgradeMode()
+uint8_t determineUpgradeRom()
 {
   Serial.printf("Current rom: ");
   uint8_t rom = system_upgrade_userbin_check() + 1;
@@ -117,7 +113,7 @@ void connectToWiFiBlocking()
   //Serial.printf("\tPassword: %s\n", pass);
 
   
-  Serial.printf("Configuring Wifi...", AP_SSID);
+  Serial.printf("Configuring Wifi %s...\n", AP_SSID);
   WiFi.persistent(false);
   WiFi.mode(WIFI_OFF);
   WiFi.mode(WIFI_AP_STA);
@@ -131,7 +127,7 @@ void connectToWiFiBlocking()
   while (! connected)
   {
     delay(500);
-    Serial.println("Connecting...");
+    Serial.println("Waiting for connection...");
     blink();
     client.connect("192.168.4.2", 8080);
     if (client.connected()) {
@@ -139,14 +135,14 @@ void connectToWiFiBlocking()
       connected = true;
     }
   }
-  Serial.print("Done\n");
-  IPAddress ip = WiFi.localIP();
-  Serial.printf("\t%d.%d.%d.%d\n", ip[0], ip[1], ip[2], ip[3]);
+  Serial.println("Web server accessible...");
+  //IPAddress ip = WiFi.localIP();
+  //Serial.printf("\t%d.%d.%d.%d\n", ip[0], ip[1], ip[2], ip[3]);
 }
 
 
 
-void flashRom1(FlashMode_t mode)
+void flashRom1()
 {
   bool result = downloadRomToFlash(
     1,                //Rom 1
@@ -156,7 +152,7 @@ void flashRom1(FlashMode_t mode)
     0x80000,          //Stop before 0x80000
     0,                //Erase Sector from 0 to
     128,              //Sector 128 (not inclusive)
-    (mode == FM_DIO) ? URL_DIO_ROM_3 : URL_QIO_ROM_3,
+    URL_ROM_3,
     RETRY             //Retry Count
   );
 
@@ -164,7 +160,7 @@ void flashRom1(FlashMode_t mode)
 }
 
 //Download special rom.
-void flashRom2(FlashMode_t mode)
+void flashRom2()
 {
   system_upgrade_flag_set(UPGRADE_FLAG_START);
   bool result = downloadRomToFlash(
@@ -175,7 +171,7 @@ void flashRom2(FlashMode_t mode)
     0x100000,         //Stop before end of ram
     128,              //From middle of flash
     256,              //End of flash
-    (mode == FM_DIO) ? URL_DIO_ROM_2 : URL_QIO_ROM_2,
+    URL_ROM_2,
     RETRY             //Retry Count
   );
   
