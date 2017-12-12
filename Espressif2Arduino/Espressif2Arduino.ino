@@ -251,6 +251,10 @@ bool downloadRomToFlash(byte rom, byte bootloader, byte magic,
       while(size < sizeof(bootrom))
       {
         blink();
+        Serial.print("Current size: ");
+        Serial.print(size);
+        Serial.print(" sizeof(bootrom): ");
+        Serial.println(sizeof(bootrom));
         size = stream->available();
       }
       int c = stream->readBytes(bootrom, sizeof(bootrom));
