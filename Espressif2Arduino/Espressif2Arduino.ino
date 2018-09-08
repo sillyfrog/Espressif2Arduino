@@ -3,7 +3,7 @@
 
 extern "C" uint8_t system_upgrade_userbin_check();
 extern "C" void system_upgrade_flag_set(uint8 flag);
-extern "C" void system_upgrade_reboot (void);
+extern "C" void system_upgrade_reboot(void);
 
 #define AP_SSID "FinalStage"
 
@@ -26,11 +26,10 @@ enum FlashMode
   MODE_FLASH_ROM2
 };
 
-
 //USER EDITABLE VARABLES HERE
-#define DELAY 100        //ms to blink/delay for
-#define STATUS_GPIO 13  //gpio to toggle as status indicator
-#define RETRY 3         //number of times to retry
+#define DELAY 100      //ms to blink/delay for
+#define STATUS_GPIO 13 //gpio to toggle as status indicator
+#define RETRY 3        //number of times to retry
 
 #define URL_ROM_2 "http://192.168.4.2:8080/ota/image_user2-0x81000.bin"
 #define URL_ROM_3 "http://192.168.4.2:8080/ota/image_arduino.bin"
@@ -39,44 +38,42 @@ enum FlashMode
 //#define WIFI_SSID "TEST"
 //#define WIFI_PASSWORD "PASSWORD"
 
-
 void setup()
 {
   Serial.begin(115200);
   Serial.print("\nInitalizing...");
-  if(STATUS_GPIO)
+  if (STATUS_GPIO)
   {
     pinMode(STATUS_GPIO, OUTPUT);
   }
 
   //blink our status LED while we wait for serial to come up
-  for(int i=0;i<100;i++)
+  for (int i = 0; i < 100; i++)
   {
-    blink(); 
+    blink();
     delay(DELAY);
   }
   digitalWrite(STATUS_GPIO, HIGH);
   Serial.println("Done");
 
   uint8_t upgrade = determineUpgradeRom();
-  if(upgrade == MODE_FLASH_ROM1 || MODE_FLASH_ROM2)
+  if (upgrade == MODE_FLASH_ROM1 || MODE_FLASH_ROM2)
   {
-      connectToWiFiBlocking();
-      digitalWrite(STATUS_GPIO, LOW);
+    connectToWiFiBlocking();
+    digitalWrite(STATUS_GPIO, LOW);
   }
-  
+
   Serial.print("Flash Mode: ");
   FlashMode_t flashmode = ESP.getFlashChipMode();
   Serial.println(flashmode);
-  
+
   if (upgrade == MODE_FLASH_ROM1)
     flashRom1();
-  else if(upgrade == MODE_FLASH_ROM2)
+  else if (upgrade == MODE_FLASH_ROM2)
     flashRom2();
   else
     Serial.println("ROM or Flash Mode not recognized");
 }
-
 
 uint8_t determineUpgradeRom()
 {
@@ -87,7 +84,7 @@ uint8_t determineUpgradeRom()
   Serial.printf("Rom 1 magic byte: ");
   uint32_t rom_1_start_address = 0x001000;
   byte magic = 0;
-  ESP.flashRead(rom_1_start_address, (uint32_t*)&magic, 1);
+  ESP.flashRead(rom_1_start_address, (uint32_t *)&magic, 1);
   Serial.printf("0x%02X\n", magic);
 
   uint8_t mode = MODE_UNKNOWN;
@@ -95,7 +92,7 @@ uint8_t determineUpgradeRom()
     mode = MODE_FLASH_ROM2;
   else if (rom == 2 && magic == MAGIC_V2)
     mode = MODE_FLASH_ROM1;
-  
+
   Serial.printf("Reflashing rom: %d\n", mode);
   return mode;
 }
@@ -104,7 +101,7 @@ void connectToWiFiBlocking()
 {
   //char ssid[32] = {0};
   //char pass[64] = {0};
-  
+
   //Serial.print("Attemping to read Sonoff Wifi credentials... ");
   //ESP.flashRead(0x79000, (uint32_t *) &ssid[0], sizeof(ssid));
   //ESP.flashRead(0x79020, (uint32_t *) &pass[0], sizeof(pass));
@@ -112,25 +109,25 @@ void connectToWiFiBlocking()
   //Serial.printf("\tSSID: %s\n", ssid);
   //Serial.printf("\tPassword: %s\n", pass);
 
-  
   Serial.printf("Configuring Wifi %s...\n", AP_SSID);
   WiFi.persistent(false);
   WiFi.mode(WIFI_OFF);
   WiFi.mode(WIFI_AP_STA);
-  
+
   WiFi.softAP(AP_SSID);
 
   WiFiClient client;
   bool connected = false;
 
   // Wait for the PC to connect to the WiFi and start the web server
-  while (! connected)
+  while (!connected)
   {
     delay(500);
     Serial.println("Waiting for connection...");
     blink();
     client.connect("192.168.4.2", 8080);
-    if (client.connected()) {
+    if (client.connected())
+    {
       Serial.println("Connected");
       connected = true;
     }
@@ -140,20 +137,18 @@ void connectToWiFiBlocking()
   //Serial.printf("\t%d.%d.%d.%d\n", ip[0], ip[1], ip[2], ip[3]);
 }
 
-
-
 void flashRom1()
 {
   bool result = downloadRomToFlash(
-    1,                //Rom 1
-    true,             //Bootloader is being updated
-    0xE9,             //Standard Arduino Magic
-    0x00000,          //Write to 0x0 since we are replacing the bootloader
-    0x80000,          //Stop before 0x80000
-    0,                //Erase Sector from 0 to
-    128,              //Sector 128 (not inclusive)
-    URL_ROM_3,
-    RETRY             //Retry Count
+      1,       //Rom 1
+      true,    //Bootloader is being updated
+      0xE9,    //Standard Arduino Magic
+      0x00000, //Write to 0x0 since we are replacing the bootloader
+      0x80000, //Stop before 0x80000
+      0,       //Erase Sector from 0 to
+      128,     //Sector 128 (not inclusive)
+      URL_ROM_3,
+      RETRY //Retry Count
   );
 
   ESP.restart(); //restart regardless of success
@@ -164,18 +159,18 @@ void flashRom2()
 {
   system_upgrade_flag_set(UPGRADE_FLAG_START);
   bool result = downloadRomToFlash(
-    2,                //Rom 2
-    false,            //Bootloader is not being updated
-    0xEA,             //V2 Espressif Magic
-    0x081000,         //Not replacing bootloader
-    0x100000,         //Stop before end of ram
-    128,              //From middle of flash
-    256,              //End of flash
-    URL_ROM_2,
-    RETRY             //Retry Count
+      2,        //Rom 2
+      false,    //Bootloader is not being updated
+      0xEA,     //V2 Espressif Magic
+      0x081000, //Not replacing bootloader
+      0x100000, //Stop before end of ram
+      128,      //From middle of flash
+      256,      //End of flash
+      URL_ROM_2,
+      RETRY //Retry Count
   );
-  
-  if(result)
+
+  if (result)
   {
     system_upgrade_flag_set(UPGRADE_FLAG_FINISH);
     system_upgrade_reboot();
@@ -187,18 +182,18 @@ void flashRom2()
 }
 
 //Assumes bootloader must be in first SECTOR_SIZE bytes.
-bool downloadRomToFlash(byte rom, byte bootloader, byte magic, 
-  uint32_t start_address, uint32_t end_address, uint16_t erase_sectior_start, 
-  uint16_t erase_sector_end, const char * url, uint8_t retry_limit)
+bool downloadRomToFlash(byte rom, byte bootloader, byte magic,
+                        uint32_t start_address, uint32_t end_address, uint16_t erase_sectior_start,
+                        uint16_t erase_sector_end, const char *url, uint8_t retry_limit)
 {
   uint8_t retry_counter = 0;
-  while(retry_counter < retry_limit)
+  while (retry_counter < retry_limit)
   {
     uint16_t erase_start = erase_sectior_start;
     uint32_t write_address = start_address;
-    uint8_t header[4] = { 0 };
-    bootrom[SECTOR_SIZE] = { 0 };
-    buffer[BUFFER_SIZE] = { 0 };
+    uint8_t header[4] = {0};
+    bootrom[SECTOR_SIZE] = {0};
+    buffer[BUFFER_SIZE] = {0};
 
     Serial.printf("Flashing rom %d (retry:%d): %s\n", rom, retry_counter, url);
     HTTPClient http;
@@ -209,7 +204,7 @@ bool downloadRomToFlash(byte rom, byte bootloader, byte magic,
     //Response Code Check
     uint16_t httpCode = http.GET();
     Serial.printf("HTTP response Code: %d\n", httpCode);
-    if(httpCode != HTTP_CODE_OK)
+    if (httpCode != HTTP_CODE_OK)
     {
       Serial.println("Invalid response Code - retry");
       retry_counter++;
@@ -219,14 +214,14 @@ bool downloadRomToFlash(byte rom, byte bootloader, byte magic,
     //Length Check (at least one sector)
     uint32_t len = http.getSize();
     Serial.printf("HTTP response length: %d\n", len);
-    if(len < SECTOR_SIZE)
+    if (len < SECTOR_SIZE)
     {
       Serial.println("Length too short - retry");
       retry_counter++;
       continue;
     }
 
-    if(len > (end_address-start_address))
+    if (len > (end_address - start_address))
     {
       Serial.println("Length exceeds flash size - retry");
       retry_counter++;
@@ -234,21 +229,21 @@ bool downloadRomToFlash(byte rom, byte bootloader, byte magic,
     }
 
     //Confirm magic byte
-    WiFiClient* stream = http.getStreamPtr();
-    stream->peekBytes(&header[0],4);
+    WiFiClient *stream = http.getStreamPtr();
+    stream->peekBytes(&header[0], 4);
     Serial.printf("Magic byte from stream: 0x%02X\n", header[0]);
-    if(header[0] != magic)
+    if (header[0] != magic)
     {
       Serial.println("Invalid magic byte - retry");
       retry_counter++;
       continue;
     }
 
-    if(bootloader)
-    { 
+    if (bootloader)
+    {
       Serial.printf("Downloading %d byte bootloader", sizeof(bootrom));
       size_t size = stream->available();
-      while(size < sizeof(bootrom))
+      while (size < sizeof(bootrom))
       {
         blink();
         Serial.print("Current size: ");
@@ -271,21 +266,21 @@ bool downloadRomToFlash(byte rom, byte bootloader, byte magic,
     {
       ESP.flashEraseSector(i);
       blink();
-    }  
+    }
     Serial.printf("Done\n");
-    
-    Serial.printf("Downloading rom to 0x%06X-0x%06X in %d byte blocks", write_address, write_address+len, sizeof(buffer));
+
+    Serial.printf("Downloading rom to 0x%06X-0x%06X in %d byte blocks", write_address, write_address + len, sizeof(buffer));
     //Serial.println();
-    while(len > 0)
+    while (len > 0)
     {
       size_t size = stream->available();
-      if(size >= sizeof(buffer) || size == len) 
+      if (size >= sizeof(buffer) || size == len)
       {
         int c = stream->readBytes(buffer, ((size > sizeof(buffer)) ? sizeof(buffer) : size));
         //Serial.printf("address=0x%06X, bytes=%d, len=%d\n", write_address, c, len);
-        ESP.flashWrite(write_address, (uint32_t*)&buffer[0], c);
-        write_address +=c; //increment next write address
-        len -= c; //decremeant remaining bytes
+        ESP.flashWrite(write_address, (uint32_t *)&buffer[0], c);
+        write_address += c; //increment next write address
+        len -= c;           //decremeant remaining bytes
       }
       blink();
       //delay(100);
@@ -293,14 +288,14 @@ bool downloadRomToFlash(byte rom, byte bootloader, byte magic,
     http.end();
     Serial.println("Done");
 
-    if(bootloader)
+    if (bootloader)
     {
       Serial.printf("Erasing bootloader sector 0");
       ESP.flashEraseSector(0);
       Serial.printf("..Done\n");
-      
+
       Serial.printf("Writing bootloader to 0x%06X-0x%06X", 0, SECTOR_SIZE);
-      ESP.flashWrite(0, (uint32_t*)&bootrom[0], SECTOR_SIZE);
+      ESP.flashWrite(0, (uint32_t *)&bootrom[0], SECTOR_SIZE);
       Serial.printf("..Done\n");
     }
 
@@ -310,17 +305,16 @@ bool downloadRomToFlash(byte rom, byte bootloader, byte magic,
   return false;
 }
 
-
 void blink()
 {
-  if(STATUS_GPIO)
+  if (STATUS_GPIO)
   {
-     if(_blink)
+    if (_blink)
       digitalWrite(STATUS_GPIO, LOW);
     else
       digitalWrite(STATUS_GPIO, HIGH);
-      
-      _blink ^= 0xFF;
+
+    _blink ^= 0xFF;
   }
   Serial.print(".");
   yield(); // reset watchdog
@@ -330,5 +324,3 @@ void loop()
 {
   delay(100);
 }
-
-
