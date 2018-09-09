@@ -4,6 +4,7 @@
 extern "C" uint8_t system_upgrade_userbin_check();
 extern "C" void system_upgrade_flag_set(uint8 flag);
 extern "C" void system_upgrade_reboot(void);
+extern "C" uint8_t system_upgrade_flag_check();
 
 #define AP_SSID "FinalStage"
 
@@ -88,12 +89,32 @@ uint8_t determineUpgradeRom()
   Serial.printf("0x%02X\n", magic);
 
   uint8_t mode = MODE_UNKNOWN;
-  if (rom == 1 && magic == MAGIC_V2)
-    mode = MODE_FLASH_ROM2;
-  else if (rom == 2 && magic == MAGIC_V2)
+  if (magic == MAGIC_V2)
+  {
+    if (rom == 1)
+      mode = MODE_FLASH_ROM2;
+    else if (rom == 2)
+      mode = MODE_FLASH_ROM1;
+  }
+
+  // Not sure how this state happens, but last ditch effort to still flash
+  if (magic == MAGIC_V1 && rom == 2)
+  {
     mode = MODE_FLASH_ROM1;
+    Serial.printf("Magic is V1, but on ROM 2, try to flash ROM 1\n");
+  }
 
   Serial.printf("Reflashing rom: %d\n", mode);
+  Serial.printf("Upgrade ROM mode: ");
+  if (mode == MODE_FLASH_ROM1)
+    Serial.printf("MODE_FLASH_ROM1\n");
+  else if (mode == MODE_FLASH_ROM2)
+    Serial.printf("MODE_FLASH_ROM2\n");
+  else if (mode == MODE_UNKNOWN)
+    Serial.printf("MODE_UNKNOWN\n");
+  else
+    Serial.printf("ERROR - this should not happen\n");
+
   return mode;
 }
 
@@ -173,6 +194,8 @@ void flashRom2()
   if (result)
   {
     system_upgrade_flag_set(UPGRADE_FLAG_FINISH);
+    Serial.print("system_upgrade_flag_check(): ");
+    Serial.println(system_upgrade_flag_check());
     system_upgrade_reboot();
   }
   else

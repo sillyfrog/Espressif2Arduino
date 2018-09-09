@@ -24,7 +24,7 @@ This is very much alpha quality at the moment, don't use this process on any dev
 
 
 # Prereqs
-1. Arduino IDE with Arduino SDK 2.3.0
+1. Arduino IDE with the ESP8266 Arduino SDK v2.3.0 (v2.4 does _not_ work), the correct version can be selected in the _Boards Manager..._
 2. Python 2.7 / 3.4
 3. ESP Tool (pip install esptool)
 
@@ -63,13 +63,17 @@ Although it is intended you would flash these images OTA you can simulate the pr
 
 3. If rom 2 is active
  
-		esptool.py -p COM5 -b 921600 write_flash 0x01000 Espressif2Arduino.ino-0x81000.bin
+		esptool.py -p COM5 -b 921600 write_flash 0x81000 Espressif2Arduino.ino-0x81000.bin
 
 4. To restore your backup
 
 		esptool.py -p COM5 -b 921600 write_flash 0x0 backup-0x00000.bin
 
 Note - there is a bug with the ESP8266 that it will stay in flash mode the first reboot after flashing by serial. Best thing to do is to flash, then immediately pull power when finished and reboot it - with this code as standard you have 5 seconds before it will try update so you can pull power in this window without an issue.
+
+If you don't have a backup of the original firmware and want to test this process, download the esp_iot_sdk (I'm using v1.4.0) or the ESP8266_RTOS_SDK, and upload the `boot_vXXX.bin`, for example:
+
+		esptool.py --port COM5 write_flash --flash_mode dout 0x00000 bin/boot_v1.7.bin
 
 # Troubleshooting
 GPIO 13 is used by default as a status indicator
